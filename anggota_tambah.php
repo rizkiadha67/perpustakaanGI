@@ -5,10 +5,11 @@ if (isset($_POST['simpan'])) {
     $nim = $_POST['nim'];
     $nama = $_POST['nama'];
     $jurusan = $_POST['jurusan'];
+    $alamat = $_POST['alamat'];
     $jk = $_POST['jenis_kelamin'];
 
-    $insert = mysqli_query($koneksi, "INSERT INTO anggota (nim, nama, jurusan, jenis_kelamin) 
-              VALUES ('$nim', '$nama', '$jurusan', '$jk')");
+    $insert = mysqli_query($koneksi, "INSERT INTO anggota (nim, nama, jurusan, alamat, jenis_kelamin) 
+              VALUES ('$nim', '$nama', '$jurusan', '$alamat', '$jk')");
 
     if ($insert) {
         header("Location: anggota_tampil.php?status=success");
@@ -34,6 +35,10 @@ include 'layout/header.php';
     <div class="form-group">
         <label>Jurusan</label>
         <input type="text" name="jurusan" required placeholder="Contoh: Teknik Informatika">
+    </div>
+    <div class="form-group">
+        <label>Alamat</label>
+        <textarea name="alamat" required placeholder="Alamat Lengkap" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; min-height: 80px;"></textarea>
     </div>
     <div class="form-group">
         <label>Jenis Kelamin</label>

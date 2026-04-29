@@ -9,11 +9,12 @@ if (isset($_POST['update'])) {
     $nim = $_POST['nim'];
     $nama = $_POST['nama'];
     $jurusan = $_POST['jurusan'];
+    $alamat = $_POST['alamat'];
     $jk = $_POST['jenis_kelamin'];
 
     $update = mysqli_query($koneksi, "UPDATE anggota SET 
               nim = '$nim', nama = '$nama', jurusan = '$jurusan', 
-              jenis_kelamin = '$jk' 
+              alamat = '$alamat', jenis_kelamin = '$jk' 
               WHERE id_anggota = $id");
 
     if ($update) {
@@ -40,6 +41,10 @@ include 'layout/header.php';
     <div class="form-group">
         <label>Jurusan</label>
         <input type="text" name="jurusan" value="<?php echo $data['jurusan']; ?>" required>
+    </div>
+    <div class="form-group">
+        <label>Alamat</label>
+        <textarea name="alamat" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; min-height: 80px;"><?php echo $data['alamat']; ?></textarea>
     </div>
     <div class="form-group">
         <label>Jenis Kelamin</label>
