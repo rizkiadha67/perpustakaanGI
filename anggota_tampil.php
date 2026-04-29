@@ -35,7 +35,11 @@ include 'layout/header.php';
     <thead>
         <tr>
             <th>No</th>
-            <th>NIM</th>
+            <th>
+                <a href="?sort=nim&order=<?php echo $next_order; ?>&cari=<?php echo $cari; ?>&filter_jurusan=<?php echo $filter_jurusan; ?>" style="text-decoration:none; color:inherit;">
+                    NIM <?php echo ($sort == 'nim') ? ($order == 'ASC' ? '↑' : '↓') : ''; ?>
+                </a>
+            </th>
             <th>Nama</th>
             <th>Jurusan</th>
             <th>Alamat</th>
@@ -49,6 +53,11 @@ include 'layout/header.php';
         $where = [];
         $cari = isset($_GET['cari']) ? mysqli_real_escape_string($koneksi, $_GET['cari']) : '';
         $filter_jurusan = isset($_GET['filter_jurusan']) ? mysqli_real_escape_string($koneksi, $_GET['filter_jurusan']) : '';
+        
+        // Sorting Logic
+        $sort = isset($_GET['sort']) ? mysqli_real_escape_string($koneksi, $_GET['sort']) : 'id_anggota';
+        $order = isset($_GET['order']) && strtolower($_GET['order']) == 'asc' ? 'ASC' : 'DESC';
+        $next_order = ($order == 'ASC') ? 'desc' : 'asc';
 
         if ($cari) {
             $where[] = "(nama LIKE '%$cari%' OR nim LIKE '%$cari%')";
@@ -58,7 +67,7 @@ include 'layout/header.php';
         }
 
         $where_sql = count($where) > 0 ? "WHERE " . implode(' AND ', $where) : "";
-        $query = mysqli_query($koneksi, "SELECT * FROM anggota $where_sql ORDER BY id_anggota DESC");
+        $query = mysqli_query($koneksi, "SELECT * FROM anggota $where_sql ORDER BY $sort $order");
         
         if (mysqli_num_rows($query) == 0) {
             echo "<tr><td colspan='7' style='text-align:center;'>Data tidak ditemukan.</td></tr>";
