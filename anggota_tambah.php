@@ -4,12 +4,12 @@ require 'config/koneksi.php';
 if (isset($_POST['simpan'])) {
     $nim = $_POST['nim'];
     $nama = $_POST['nama'];
-    $jurusan = $_POST['jurusan'];
+    $id_jurusan = $_POST['id_jurusan'];
     $alamat = $_POST['alamat'];
     $jk = $_POST['jenis_kelamin'];
 
-    $insert = mysqli_query($koneksi, "INSERT INTO anggota (nim, nama, jurusan, alamat, jenis_kelamin) 
-              VALUES ('$nim', '$nama', '$jurusan', '$alamat', '$jk')");
+    $insert = mysqli_query($koneksi, "INSERT INTO anggota (nim, id_jurusan, nama, alamat, jenis_kelamin) 
+              VALUES ('$nim', '$id_jurusan', '$nama', '$alamat', '$jk')");
 
     if ($insert) {
         header("Location: anggota_tampil.php?status=success");
@@ -34,7 +34,15 @@ include 'layout/header.php';
     </div>
     <div class="form-group">
         <label>Jurusan</label>
-        <input type="text" name="jurusan" required placeholder="Contoh: Teknik Informatika">
+        <select name="id_jurusan" required>
+            <option value="">-- Pilih Jurusan --</option>
+            <?php
+            $q_jurusan = mysqli_query($koneksi, "SELECT * FROM jurusan ORDER BY nama_jurusan ASC");
+            while($j = mysqli_fetch_array($q_jurusan)) {
+                echo "<option value='".$j['id_jurusan']."'>".$j['nama_jurusan']."</option>";
+            }
+            ?>
+        </select>
     </div>
     <div class="form-group">
         <label>Alamat</label>

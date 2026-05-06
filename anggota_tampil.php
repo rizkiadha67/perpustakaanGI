@@ -15,7 +15,7 @@ if ($cari) {
     $where[] = "(nama LIKE '%$cari%' OR nim LIKE '%$cari%')";
 }
 if ($filter_jurusan) {
-    $where[] = "jurusan = '$filter_jurusan'";
+    $where[] = "anggota.id_jurusan = '$filter_jurusan'";
 }
 
 $where_sql = count($where) > 0 ? "WHERE " . implode(' AND ', $where) : "";
@@ -48,10 +48,10 @@ include 'layout/header.php';
         <select name="filter_jurusan">
             <option value="">-- Semua Jurusan --</option>
             <?php
-            $q_jurusan = mysqli_query($koneksi, "SELECT DISTINCT jurusan FROM anggota WHERE jurusan != '' ORDER BY jurusan ASC");
+            $q_jurusan = mysqli_query($koneksi, "SELECT * FROM jurusan ORDER BY nama_jurusan ASC");
             while($j = mysqli_fetch_array($q_jurusan)) {
-                $selected = (isset($_GET['filter_jurusan']) && $_GET['filter_jurusan'] == $j['jurusan']) ? 'selected' : '';
-                echo "<option value='".$j['jurusan']."' $selected>".$j['jurusan']."</option>";
+                $selected = (isset($_GET['filter_jurusan']) && $_GET['filter_jurusan'] == $j['id_jurusan']) ? 'selected' : '';
+                echo "<option value='".$j['id_jurusan']."' $selected>".$j['nama_jurusan']."</option>";
             }
             ?>
         </select>
@@ -92,7 +92,12 @@ include 'layout/header.php';
     <tbody>
         <?php
         $no = $offset + 1;
-        $query = mysqli_query($koneksi, "SELECT * FROM anggota $where_sql ORDER BY $sort $order LIMIT $offset, $limit");
+        $query = mysqli_query($koneksi, "SELECT anggota.*, jurusan.nama_jurusan 
+                                        FROM anggota 
+                                        LEFT JOIN jurusan ON anggota.id_jurusan = jurusan.id_jurusan
+                                        $where_sql 
+                                        ORDER BY $sort $order 
+                                        LIMIT $offset, $limit");
         
         if (mysqli_num_rows($query) == 0) {
             echo "<tr><td colspan='7' style='text-align:center;'>Data tidak ditemukan.</td></tr>";
@@ -104,7 +109,7 @@ include 'layout/header.php';
                 <td><?php echo $no++; ?></td>
                 <td><?php echo $data['nim']; ?></td>
                 <td><?php echo $data['nama']; ?></td>
-                <td><?php echo $data['jurusan']; ?></td>
+                <td><?php echo $data['nama_jurusan']; ?></td>
                 <td><?php echo $data['alamat']; ?></td>
                 <td><?php echo $data['jenis_kelamin']; ?></td>
                 <td>

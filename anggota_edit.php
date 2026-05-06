@@ -8,12 +8,12 @@ $data = mysqli_fetch_array($query);
 if (isset($_POST['update'])) {
     $nim = $_POST['nim'];
     $nama = $_POST['nama'];
-    $jurusan = $_POST['jurusan'];
+    $id_jurusan = $_POST['id_jurusan'];
     $alamat = $_POST['alamat'];
     $jk = $_POST['jenis_kelamin'];
 
     $update = mysqli_query($koneksi, "UPDATE anggota SET 
-              nim = '$nim', nama = '$nama', jurusan = '$jurusan', 
+              nim = '$nim', nama = '$nama', id_jurusan = '$id_jurusan', 
               alamat = '$alamat', jenis_kelamin = '$jk' 
               WHERE id_anggota = $id");
 
@@ -40,7 +40,16 @@ include 'layout/header.php';
     </div>
     <div class="form-group">
         <label>Jurusan</label>
-        <input type="text" name="jurusan" value="<?php echo $data['jurusan']; ?>" required>
+        <select name="id_jurusan" required>
+            <option value="">-- Pilih Jurusan --</option>
+            <?php
+            $q_jurusan = mysqli_query($koneksi, "SELECT * FROM jurusan ORDER BY nama_jurusan ASC");
+            while($j = mysqli_fetch_array($q_jurusan)) {
+                $selected = ($data['id_jurusan'] == $j['id_jurusan']) ? 'selected' : '';
+                echo "<option value='".$j['id_jurusan']."' $selected>".$j['nama_jurusan']."</option>";
+            }
+            ?>
+        </select>
     </div>
     <div class="form-group">
         <label>Alamat</label>

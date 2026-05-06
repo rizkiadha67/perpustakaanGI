@@ -13,6 +13,7 @@
         <ul>
             <li><a href="index.php">Dashboard</a></li>
             <li><a href="buku_tampil.php">Buku</a></li>
+            <li><a href="jurusan_tampil.php">Jurusan</a></li>
             <li><a href="anggota_tampil.php">Anggota</a></li>
             <li><a href="pinjam_tampil.php">Peminjaman</a></li>
         </ul>
