@@ -14,6 +14,7 @@ include 'layout/header.php';
         <tr>
             <th width="50">No</th>
             <th>Nama Jurusan</th>
+            <th>Terakhir Diupdate</th>
             <th width="150">Aksi</th>
         </tr>
     </thead>
@@ -31,6 +32,7 @@ include 'layout/header.php';
             <tr>
                 <td><?php echo $no++; ?></td>
                 <td><?php echo $data['nama_jurusan']; ?></td>
+                <td><?php echo date('d/m/Y H:i', strtotime($data['updated_at'])); ?></td>
                 <td>
                     <a href="jurusan_edit.php?id=<?php echo $data['id_jurusan']; ?>" class="btn btn-warning">Edit</a>
                     <a href="jurusan_hapus.php?id=<?php echo $data['id_jurusan']; ?>" class="btn btn-danger"

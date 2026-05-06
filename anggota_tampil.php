@@ -86,6 +86,7 @@ include 'layout/header.php';
             <th>Jurusan</th>
             <th>Alamat</th>
             <th>L/P</th>
+            <th>Terakhir Diupdate</th>
             <th>Aksi</th>
         </tr>
     </thead>
@@ -112,6 +113,7 @@ include 'layout/header.php';
                 <td><?php echo $data['nama_jurusan']; ?></td>
                 <td><?php echo $data['alamat']; ?></td>
                 <td><?php echo $data['jenis_kelamin']; ?></td>
+                <td><?php echo date('d/m/Y H:i', strtotime($data['updated_at'])); ?></td>
                 <td>
                     <a href="anggota_edit.php?id=<?php echo $data['id_anggota']; ?>" class="btn btn-warning">Edit</a>
                     <a href="anggota_hapus.php?id=<?php echo $data['id_anggota']; ?>" class="btn btn-danger"
