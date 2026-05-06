@@ -20,6 +20,18 @@ if ($filter_jurusan) {
 
 $where_sql = count($where) > 0 ? "WHERE " . implode(' AND ', $where) : "";
 
+// Pagination Logic
+$limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+if ($page < 1) $page = 1;
+$offset = ($page - 1) * $limit;
+
+// Count total records for pagination
+$q_count = mysqli_query($koneksi, "SELECT COUNT(*) as total FROM anggota $where_sql");
+$row_count = mysqli_fetch_assoc($q_count);
+$total_records = $row_count['total'];
+$total_pages = ceil($total_records / $limit);
+
 include 'layout/header.php';
 ?>
 
@@ -43,9 +55,19 @@ include 'layout/header.php';
             }
             ?>
         </select>
+
+        <select name="limit">
+            <?php
+            $limits = [10, 25, 50, 100];
+            foreach($limits as $l) {
+                $selected = ($limit == $l) ? 'selected' : '';
+                echo "<option value='$l' $selected>$l Per Halaman</option>";
+            }
+            ?>
+        </select>
         
         <button type="submit" class="btn btn-primary">Cari & Filter</button>
-        <?php if(isset($_GET['cari']) || isset($_GET['filter_jurusan'])): ?>
+        <?php if(isset($_GET['cari']) || isset($_GET['filter_jurusan']) || isset($_GET['limit'])): ?>
             <a href="anggota_tampil.php" class="btn btn-danger">Reset</a>
         <?php endif; ?>
     </form>
@@ -56,7 +78,7 @@ include 'layout/header.php';
         <tr>
             <th>No</th>
             <th>
-                <a href="?sort=nim&order=<?php echo $next_order; ?>&cari=<?php echo $cari; ?>&filter_jurusan=<?php echo $filter_jurusan; ?>" style="text-decoration:none; color:inherit;">
+                <a href="?sort=nim&order=<?php echo $next_order; ?>&cari=<?php echo $cari; ?>&filter_jurusan=<?php echo $filter_jurusan; ?>&limit=<?php echo $limit; ?>" style="text-decoration:none; color:inherit;">
                     NIM <?php echo ($sort == 'nim') ? ($order == 'ASC' ? '↑' : '↓') : ''; ?>
                 </a>
             </th>
@@ -69,8 +91,8 @@ include 'layout/header.php';
     </thead>
     <tbody>
         <?php
-        $no = 1;
-        $query = mysqli_query($koneksi, "SELECT * FROM anggota $where_sql ORDER BY $sort $order");
+        $no = $offset + 1;
+        $query = mysqli_query($koneksi, "SELECT * FROM anggota $where_sql ORDER BY $sort $order LIMIT $offset, $limit");
         
         if (mysqli_num_rows($query) == 0) {
             echo "<tr><td colspan='7' style='text-align:center;'>Data tidak ditemukan.</td></tr>";
@@ -94,5 +116,49 @@ include 'layout/header.php';
         <?php } ?>
     </tbody>
 </table>
+
+<!-- Pagination -->
+<?php if ($total_pages > 1): ?>
+    <div class="pagination">
+        <?php 
+        $params = "&cari=$cari&filter_jurusan=$filter_jurusan&limit=$limit&sort=$sort&order=$order";
+        ?>
+        
+        <?php if ($page > 1): ?>
+            <a href="?page=<?php echo $page - 1 . $params; ?>">&laquo; Prev</a>
+        <?php else: ?>
+            <span class="disabled">&laquo; Prev</span>
+        <?php endif; ?>
+
+        <?php
+        $start_page = max(1, $page - 2);
+        $end_page = min($total_pages, $page + 2);
+        
+        if ($start_page > 1) {
+            echo "<a href='?page=1$params'>1</a>";
+            if ($start_page > 2) echo "<span>...</span>";
+        }
+
+        for ($i = $start_page; $i <= $end_page; $i++) {
+            $active = ($i == $page) ? 'active' : '';
+            echo "<a href='?page=$i$params' class='$active'>$i</a>";
+        }
+
+        if ($end_page < $total_pages) {
+            if ($end_page < $total_pages - 1) echo "<span>...</span>";
+            echo "<a href='?page=$total_pages$params'>$total_pages</a>";
+        }
+        ?>
+
+        <?php if ($page < $total_pages): ?>
+            <a href="?page=<?php echo $page + 1 . $params; ?>">Next &raquo;</a>
+        <?php else: ?>
+            <span class="disabled">Next &raquo;</span>
+        <?php endif; ?>
+    </div>
+    <div class="pagination-info">
+        Menampilkan <?php echo min($total_records, $offset + 1); ?> - <?php echo min($total_records, $offset + $limit); ?> dari <?php echo $total_records; ?> total data
+    </div>
+<?php endif; ?>
 
 <?php include 'layout/footer.php'; ?>
