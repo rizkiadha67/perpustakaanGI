@@ -309,49 +309,125 @@ $data_kembali_json = json_encode($data_kembali);
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 
 <script>
+/**
+ * ============================================================
+ *  DASHBOARD GRAFIK PEMINJAMAN BUKU
+ *  Menggunakan library Chart.js v4
+ * ============================================================
+ *
+ *  Jenis grafik yang tersedia:
+ *  1. Bar       - Diagram batang, cocok membandingkan jumlah per hari
+ *  2. Line      - Diagram garis, menampilkan tren naik/turun
+ *  3. Area      - Diagram garis dengan area terisi, memperjelas volume
+ *  4. Radar     - Diagram jaring laba-laba, membandingkan pola antar hari
+ *  5. Pie       - Diagram lingkaran, proporsi total pinjam vs kembali
+ *  6. Doughnut  - Sama seperti Pie tapi berlubang di tengah
+ *  7. PolarArea - Diagram polar, tiap irisan memiliki jari-jari proporsional
+ * ============================================================
+ */
+
+// ── Data dari PHP (di-encode ke JSON untuk dipakai di JavaScript) ──────────
+// LABELS  : array label tanggal, contoh: ["14 Mei", "15 Mei", ...]
+// PINJAM  : jumlah buku dipinjam per hari selama 7 hari terakhir
+// KEMBALI : jumlah buku dikembalikan per hari selama 7 hari terakhir
 const LABELS   = <?= $labels_json ?>;
 const PINJAM   = <?= $data_pinjam_json ?>;
 const KEMBALI  = <?= $data_kembali_json ?>;
 
-const C_BLUE  = '#3498db';
-const C_GREEN = '#27ae60';
-const C_BLUE_A  = 'rgba(52,152,219,.15)';
-const C_GREEN_A = 'rgba(39,174,96,.15)';
+// ── Konstanta warna utama ─────────────────────────────────────────────────
+const C_BLUE    = '#3498db';              // Warna biru untuk dataset "Dipinjam"
+const C_GREEN   = '#27ae60';              // Warna hijau untuk dataset "Dikembalikan"
+const C_BLUE_A  = 'rgba(52,152,219,.15)'; // Biru transparan (dipakai pada chart Area)
+const C_GREEN_A = 'rgba(39,174,96,.15)';  // Hijau transparan (dipakai pada chart Area)
 
+// ── Konfigurasi default global Chart.js ───────────────────────────────────
 Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
-Chart.defaults.color = '#7f8c8d';
-Chart.defaults.borderColor = '#ecf0f1';
+Chart.defaults.color = '#7f8c8d';    // Warna teks label sumbu
+Chart.defaults.borderColor = '#ecf0f1'; // Warna garis grid
 
+// Variabel penampung instance chart aktif (digunakan saat ganti jenis diagram)
 let chart = null;
 
+/**
+ * buildConfig(type)
+ * Membangun objek konfigurasi Chart.js sesuai jenis diagram yang dipilih.
+ *
+ * @param {string} type - Jenis grafik: 'bar' | 'line' | 'area' | 'radar'
+ *                        | 'pie' | 'doughnut' | 'polarArea'
+ * @returns {object} Konfigurasi lengkap untuk new Chart(ctx, config)
+ */
 function buildConfig(type) {
-    const isCircular = ['pie','doughnut','polarArea'].includes(type);
+
+    // ── Deteksi kategori diagram ───────────────────────────────────────────
+    // isCircular : Pie, Doughnut, PolarArea → tidak punya sumbu X/Y
+    //              Datanya digabung jadi total pinjam vs total kembali
+    // isArea     : Area → secara teknis Chart.js tipe 'line' dengan fill: true
+    // realType   : Nama tipe yang diterima Chart.js (area → line)
+    const isCircular = ['pie', 'doughnut', 'polarArea'].includes(type);
     const isArea     = type === 'area';
     const realType   = isArea ? 'line' : type;
 
+    // ── Konfigurasi Dataset ────────────────────────────────────────────────
     const datasets = isCircular
+
+        /**
+         * Dataset untuk diagram MELINGKAR (Pie / Doughnut / PolarArea)
+         * ─────────────────────────────────────────────────────────────
+         * - Hanya 1 dataset dengan 2 segmen: Total Dipinjam & Total Dikembalikan
+         * - Data dihitung dengan menjumlahkan semua nilai 7 hari (Array.reduce)
+         * - backgroundColor: array warna berbeda untuk tiap segmen
+         */
         ? [{
             label: 'Total',
-            data : [PINJAM.reduce((a,b)=>a+b,0), KEMBALI.reduce((a,b)=>a+b,0)],
-            backgroundColor: ['rgba(52,152,219,.75)','rgba(39,174,96,.75)',
-                'rgba(231,76,60,.75)','rgba(243,156,18,.75)',
-                'rgba(142,68,173,.75)','rgba(26,188,156,.75)','rgba(52,73,94,.75)'],
-            borderColor: '#fff',
+            data : [
+                PINJAM.reduce((a, b) => a + b, 0),   // Total pinjam 7 hari
+                KEMBALI.reduce((a, b) => a + b, 0),  // Total kembali 7 hari
+            ],
+            backgroundColor: [
+                'rgba(52,152,219,.75)',  // Biru  → Dipinjam
+                'rgba(39,174,96,.75)',   // Hijau → Dikembalikan
+                'rgba(231,76,60,.75)',
+                'rgba(243,156,18,.75)',
+                'rgba(142,68,173,.75)',
+                'rgba(26,188,156,.75)',
+                'rgba(52,73,94,.75)',
+            ],
+            borderColor: '#fff', // Garis pemisah antar segmen
             borderWidth: 2,
           }]
+
+        /**
+         * Dataset untuk diagram BERBASIS SUMBU (Bar / Line / Area / Radar)
+         * ─────────────────────────────────────────────────────────────────
+         * - 2 dataset terpisah: "Dipinjam" (biru) dan "Dikembalikan" (hijau)
+         * - Data per hari selama 7 hari terakhir sesuai array PINJAM & KEMBALI
+         *
+         * Penjelasan properti tiap dataset:
+         *   backgroundColor : Warna isian batang/area. Pada Area pakai warna transparan.
+         *   borderColor     : Warna garis tepi batang atau garis pada Line/Area
+         *   borderWidth     : Ketebalan garis tepi (piksel)
+         *   pointRadius     : Ukuran titik data pada Line/Area/Radar
+         *   pointHoverRadius: Ukuran titik saat kursor hover
+         *   fill            : true  → isi area di bawah garis (khusus chart Area)
+         *                     false → tidak diisi (Line biasa)
+         *   tension         : Kelengkungan garis (0 = lurus, 0.4 = melengkung)
+         *                     Aktif hanya pada tipe Line dan Area
+         */
         : [
             {
+                // ── Dataset 1: Jumlah Peminjaman per Hari ─────────────────
                 label: 'Dipinjam',
                 data : PINJAM,
-                backgroundColor: isArea ? C_BLUE_A  : C_BLUE,
+                backgroundColor: isArea ? C_BLUE_A : C_BLUE, // Transparan jika Area
                 borderColor    : C_BLUE,
                 borderWidth    : 2,
                 pointBackgroundColor: C_BLUE,
                 pointRadius: 5, pointHoverRadius: 7,
-                fill   : isArea,
-                tension: (type==='line'||isArea) ? 0.4 : 0,
+                fill   : isArea,                              // Isi area hanya jika tipe Area
+                tension: (type === 'line' || isArea) ? 0.4 : 0, // Garis melengkung untuk Line/Area
             },
             {
+                // ── Dataset 2: Jumlah Pengembalian per Hari ───────────────
                 label: 'Dikembalikan',
                 data : KEMBALI,
                 backgroundColor: isArea ? C_GREEN_A : C_GREEN,
@@ -360,67 +436,110 @@ function buildConfig(type) {
                 pointBackgroundColor: C_GREEN,
                 pointRadius: 5, pointHoverRadius: 7,
                 fill   : isArea,
-                tension: (type==='line'||isArea) ? 0.4 : 0,
+                tension: (type === 'line' || isArea) ? 0.4 : 0,
             },
           ];
 
+    // ── Objek konfigurasi lengkap Chart.js ────────────────────────────────
     return {
-        type: realType,
+        type: realType, // Tipe chart yang dikenali Chart.js
         data: {
-            labels  : isCircular ? ['Dipinjam','Dikembalikan'] : LABELS,
+            // Circular chart pakai label nama kategori; lainnya pakai tanggal
+            labels  : isCircular ? ['Dipinjam', 'Dikembalikan'] : LABELS,
             datasets,
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation : { duration: 550, easing: 'easeInOutQuart' },
+            responsive         : true,  // Otomatis menyesuaikan lebar container
+            maintainAspectRatio: false, // Tinggi dikontrol dari CSS (.chart-wrap)
+
+            // ── Animasi transisi saat ganti diagram ───────────────────────
+            animation: { duration: 550, easing: 'easeInOutQuart' },
+
             plugins: {
+                // ── Legenda (label warna dataset) ─────────────────────────
+                // Hanya ditampilkan pada diagram melingkar karena
+                // Bar/Line/Area/Radar sudah punya legenda HTML di atasnya
                 legend: {
                     display : isCircular,
                     position: 'bottom',
                     labels  : { color:'#555', padding:16, font:{size:12}, boxWidth:14, boxHeight:14 },
                 },
+
+                // ── Tooltip saat hover pada data point ────────────────────
                 tooltip: {
-                    backgroundColor: '#2c3e50',
+                    backgroundColor: '#2c3e50', // Latar tooltip gelap
                     titleColor     : '#ecf0f1',
                     bodyColor      : '#bdc3c7',
                     borderColor    : '#34495e',
                     borderWidth    : 1,
                     padding        : 10,
                     cornerRadius   : 6,
+                    // Format teks tooltip: tampilkan nama dataset + jumlah buku
+                    // Circular chart tidak butuh format khusus (Chart.js otomatis)
                     callbacks: isCircular ? {} : {
                         label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y} buku`,
                     },
                 },
             },
+
+            // ── Konfigurasi Sumbu X dan Y ──────────────────────────────────
+            // Diagram melingkar tidak memiliki sumbu → dikosongkan ({})
             scales: isCircular ? {} : {
                 x: {
-                    grid : { color:'#ecf0f1' },
-                    ticks: { color:'#7f8c8d', font:{size:11} },
+                    grid : { color: '#ecf0f1' }, // Warna garis grid vertikal
+                    ticks: { color: '#7f8c8d', font: {size:11} },
                 },
                 y: {
-                    beginAtZero: true,
-                    grid : { color:'#ecf0f1' },
-                    ticks: { color:'#7f8c8d', font:{size:11}, stepSize:1, precision:0 },
+                    beginAtZero: true, // Sumbu Y selalu mulai dari 0
+                    grid : { color: '#ecf0f1' }, // Warna garis grid horizontal
+                    ticks: {
+                        color    : '#7f8c8d',
+                        font     : {size:11},
+                        stepSize : 1,     // Kenaikan tiap strip = 1 (buku)
+                        precision: 0,     // Tidak pakai desimal
+                    },
                 },
             },
         },
     };
 }
 
+/**
+ * renderChart(type)
+ * Menghancurkan chart lama (jika ada) lalu merender chart baru
+ * di dalam elemen <canvas id="mainChart">.
+ *
+ * Menghancurkan dulu diperlukan agar Chart.js tidak menumpuk
+ * instance di canvas yang sama dan menyebabkan memory leak.
+ *
+ * @param {string} type - Jenis diagram (bar | line | area | radar | pie | doughnut | polarArea)
+ */
 function renderChart(type) {
     const ctx = document.getElementById('mainChart');
-    if (chart) { chart.destroy(); chart = null; }
+
+    // Hancurkan chart sebelumnya jika sudah ada
+    if (chart) {
+        chart.destroy();
+        chart = null;
+    }
+
+    // Buat instance Chart.js baru dengan konfigurasi sesuai tipe
     chart = new Chart(ctx, buildConfig(type));
 }
 
+// ── Inisialisasi: tampilkan Bar Chart saat halaman pertama dibuka ──────────
 renderChart('bar');
 
+// ── Event listener untuk tombol tab pilihan diagram ───────────────────────
+// Saat salah satu tombol diklik:
+//   1. Hapus kelas 'active' dari semua tombol
+//   2. Tambahkan kelas 'active' ke tombol yang diklik
+//   3. Render ulang chart sesuai atribut data-chart tombol tersebut
 document.querySelectorAll('.chart-tab-btn').forEach(btn => {
     btn.addEventListener('click', function () {
         document.querySelectorAll('.chart-tab-btn').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        renderChart(this.dataset.chart);
+        this.classList.add('active');                 // Tandai tombol aktif
+        renderChart(this.dataset.chart);              // Ganti jenis diagram
     });
 });
 </script>
